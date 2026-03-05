@@ -139,7 +139,7 @@ export function SecuritySection() {
     const headY = useTransform(scrollYProgress, [0, 1], [25, -25]);
 
     return (
-        <SectionWrapper id="security" className="py-24 bg-zinc-950/50 section-alternate relative overflow-hidden" ref={secRef}>
+        <SectionWrapper id="security" className="py-24 relative overflow-hidden" ref={secRef}>
             <motion.div className="text-center mb-16" style={{ y: headY }}>
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}

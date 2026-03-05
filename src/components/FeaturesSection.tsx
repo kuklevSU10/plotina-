@@ -54,7 +54,7 @@ export function FeaturesSection() {
     const activeFeature = features.find(f => f.id === activeTab) || features[0];
 
     return (
-        <SectionWrapper id="features" className="py-24 bg-zinc-950/50 section-alternate relative overflow-hidden">
+        <SectionWrapper id="features" className="py-24 relative overflow-hidden">
             {/* Decorative background glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
 
