@@ -277,45 +277,50 @@ unmarked_count = <span class="text-orange-300">0</span>
                 </motion.div>
             </div>
 
-            {/* Pipeline */}
+            {/* Redesigned Pipeline */}
             <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1, delay: 0.6 }}
-                className="relative z-10 max-w-3xl mx-auto mb-16"
+                className="relative z-10 w-full max-w-4xl mx-auto mb-16 px-4"
             >
-                <div className="flex items-center justify-between relative">
-                    <div className="absolute top-1/2 left-[10%] right-[10%] h-px bg-zinc-800 -translate-y-1/2" />
-                    <motion.div
-                        className="absolute top-1/2 left-[10%] h-px bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500 -translate-y-1/2"
-                        initial={{ width: "0%" }}
-                        animate={{ width: "80%" }}
-                        transition={{ duration: 2.5, delay: 1.2, ease: "easeInOut" }}
-                    />
-                    <motion.div
-                        className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.8)]"
-                        animate={{ left: ["10%", "90%"] }}
-                        transition={{ duration: 3, delay: 1.2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
-                    />
-                    {pipelineSteps.map((step, i) => (
+                <div className="relative flex items-center justify-between p-4 md:p-6 bg-zinc-950/40 backdrop-blur-md border border-white/10 rounded-2xl md:rounded-full shadow-2xl overflow-x-auto sm:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {/* Continuous animated gradient background glow */}
+                    <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden rounded-2xl md:rounded-full">
                         <motion.div
-                            key={step.label}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 1.2 + i * 0.4, duration: 0.5 }}
-                            className="relative z-10 flex flex-col items-center gap-2"
-                        >
+                            className="absolute top-0 bottom-0 w-[200%] bg-gradient-to-r from-transparent via-emerald-500 to-transparent"
+                            animate={{ left: ["-100%", "50%"] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                        />
+                    </div>
+
+                    {/* Connecting line behind */}
+                    <div className="absolute top-1/2 left-[10%] right-[10%] h-[1px] -translate-y-1/2 bg-white/10 hidden sm:block pointer-events-none" />
+
+                    {/* The Steps */}
+                    {pipelineSteps.map((step, i) => (
+                        <div key={step.label} className="relative z-10 flex flex-col items-center gap-3 min-w-[80px] sm:min-w-[100px]">
                             <motion.div
-                                className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-2xl shadow-lg"
-                                whileHover={{ scale: 1.1, borderColor: step.color }}
-                                animate={{ borderColor: ["rgba(39,39,42,1)", step.color, "rgba(39,39,42,1)"] }}
-                                transition={{ duration: 3, delay: 1.2 + i * 0.4, repeat: Infinity, repeatDelay: 2 }}
-                                style={{ boxShadow: `0 0 20px ${step.color}15` }}
+                                className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg relative shrink-0"
+                                animate={{
+                                    borderColor: ["rgba(63,63,70,1)", step.color, "rgba(63,63,70,1)"],
+                                    boxShadow: [`0 0 0px ${step.color}00`, `0 0 20px ${step.color}60`, `0 0 0px ${step.color}00`]
+                                }}
+                                transition={{ duration: 2.4, delay: i * 0.4, repeat: Infinity, ease: "easeInOut" }}
                             >
+                                {/* Glowing traveling pulse indicator on top */}
+                                <motion.div
+                                    className="absolute -top-1.5 w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: step.color, boxShadow: `0 0 10px ${step.color}` }}
+                                    animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0.5] }}
+                                    transition={{ duration: 2.4, delay: i * 0.4, repeat: Infinity, ease: "easeInOut" }}
+                                />
                                 {step.icon}
                             </motion.div>
-                            <span className="text-xs font-medium text-zinc-400">{step.label}</span>
-                        </motion.div>
+                            <span className="text-xs md:text-sm font-semibold text-zinc-300 tracking-wide text-center whitespace-nowrap">
+                                {step.label}
+                            </span>
+                        </div>
                     ))}
                 </div>
             </motion.div>

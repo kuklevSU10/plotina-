@@ -313,7 +313,7 @@ export function EveCompanion() {
                                     initial={{ opacity: 0, scale: 0.7, y: 8 }}
                                     animate={{ opacity: 1, scale: 1, y: -8 }}
                                     exit={{ opacity: 0, scale: 0.7, y: 8, transition: { duration: 0.15 } }}
-                                    className={`absolute bottom-full mb-3 right-0 bg-white/10 backdrop-blur-lg border border-white/20 text-white text-[11px] font-medium p-2.5 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.3)] whitespace-pre-wrap leading-relaxed ${state.type === 'explaining' || state.type === 'success'
+                                    className={`absolute bottom-full mb-3 right-0 bg-white/10 backdrop-blur-lg border border-white/20 text-white text-[11px] font-medium p-2.5 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.3)] whitespace-pre-wrap leading-relaxed [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${state.type === 'explaining' || state.type === 'success'
                                         ? 'min-w-[200px] max-w-[320px] max-h-[160px] overflow-y-auto text-left'
                                         : 'min-w-[140px] max-w-[200px] text-center'
                                         }`}
