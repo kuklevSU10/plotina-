@@ -61,6 +61,12 @@ body::before {
   mix-blend-mode: overlay;
 }
 
+/* ===== Cursor Reversion (Dark Theme Only) ===== */
+.cursor-reversion {
+  mix-blend-mode: difference;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.1));
+}
+
 /* ===== Section Divider utility ===== */
 @utility section-divider {
   height: 1px;
@@ -403,4 +409,10 @@ html[data-theme="light"] .feature-tab-active .text-zinc-400 {
 html[data-theme="light"] .bg-emerald-500\/10,
 html[data-theme="light"] .bg-emerald-500\/5 {
   background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+/* ── Reset Cursor Reversion ── */
+html[data-theme="light"] .cursor-reversion {
+  mix-blend-mode: normal !important;
+  filter: none !important;
 }

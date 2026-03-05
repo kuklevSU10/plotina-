@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { SectionWrapper } from "@/components/ui/SectionWrapper";
 import { useEve } from "@/contexts/EveContext";
@@ -246,9 +246,9 @@ unmarked_count = <span class="text-orange-300">0</span>
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
-                    className="text-5xl md:text-7xl font-bold tracking-tight text-white"
+                    className="text-5xl md:text-7xl font-bold tracking-tight text-white leading-tight"
                 >
-                    Just tell Revit{" "}
+                    Just tell Revit <br className="hidden md:block" />{" "}
                     <span className="text-gradient from-emerald-400 to-emerald-600 bg-gradient-to-r">
                         what you need
                     </span>
