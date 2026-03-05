@@ -198,11 +198,11 @@ export function EveCompanion() {
                         </motion.div>
                     ) : (
                         <svg width="44" height="44" viewBox="0 0 44 44" className="overflow-visible">
-                            {/* Rotating dashed orbit */}
+                            {/* Rotating dashed orbit - very faint and small now */}
                             <motion.circle
-                                cx="22" cy="22" r="16"
+                                cx="22" cy="22" r="10"
                                 fill="none"
-                                stroke="rgba(255,255,255,0.12)"
+                                stroke="rgba(255,255,255,0.05)"
                                 strokeWidth="0.8"
                                 strokeDasharray="3 5"
                                 animate={{ rotate: 360 }}
@@ -210,21 +210,10 @@ export function EveCompanion() {
                                 style={{ transformOrigin: "22px 22px" }}
                             />
 
-                            {/* Main ring — morphs on click */}
-                            <motion.circle
-                                cx="22" cy="22"
-                                fill="none"
-                                strokeWidth="1.8"
-                                animate={{
-                                    r: isClicked ? 6 : 12,
-                                    stroke: isClicked ? moodColor : "rgba(255,255,255,0.7)",
-                                    strokeWidth: isClicked ? 2.5 : 1.8,
-                                }}
-                                transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                            />
+                            {/* Main ring removed as requested */}
 
-                            {/* Crosshair ticks */}
-                            <g stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round">
+                            {/* Crosshair ticks — made "dark" via very low opacity white (since under difference blend on black this results in a dark grey #262626) */}
+                            <g stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round">
                                 <line x1="22" y1="3" x2="22" y2="9" />
                                 <line x1="22" y1="35" x2="22" y2="41" />
                                 <line x1="3" y1="22" x2="9" y2="22" />
