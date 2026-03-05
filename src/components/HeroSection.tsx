@@ -152,7 +152,7 @@ unmarked_count = <span class="text-orange-300">0</span>
                         thoughtText: "I translate your words into IronPython instantly.",
                         targetRef: terminalRef
                     })}
-                    onMouseLeave={clearInteraction}
+                    onMouseLeave={() => clearInteraction()}
                     ref={terminalRef}
                 >
                     <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-zinc-500/20 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />

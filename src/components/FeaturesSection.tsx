@@ -170,7 +170,7 @@ export function FeaturesSection() {
                                                     targetRef: { current: e.currentTarget } as React.RefObject<HTMLElement>
                                                 })
                                             }}
-                                            onMouseLeave={clearInteraction}
+                                            onMouseLeave={() => clearInteraction()}
                                             className="bg-blue-500/20 border border-blue-500/30 text-blue-400 px-4 py-2 rounded-full text-sm font-medium shadow-lg backdrop-blur-md flex items-center gap-2 hover:bg-blue-500/30 transition-colors"
                                         >
                                             Explain Code
