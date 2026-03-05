@@ -54,7 +54,7 @@ export function FeaturesSection() {
     const activeFeature = features.find(f => f.id === activeTab) || features[0];
 
     return (
-        <SectionWrapper id="features" className="py-24 bg-zinc-950/50 relative overflow-hidden">
+        <SectionWrapper id="features" className="py-24 bg-zinc-950/50 section-alternate relative overflow-hidden">
             {/* Decorative background glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
 
@@ -84,8 +84,8 @@ export function FeaturesSection() {
                                 className={cn(
                                     "flex items-center shrink-0 w-[240px] lg:w-auto gap-4 text-left p-4 rounded-xl transition-all duration-300 border backdrop-blur-md relative overflow-hidden group snap-center",
                                     isActive
-                                        ? "bg-zinc-800/80 border-emerald-500/30 text-white shadow-[0_0_20px_rgba(16,185,129,0.1)]"
-                                        : "bg-transparent border-transparent text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+                                        ? "feature-tab-active bg-zinc-800/80 border-emerald-500/30 text-white shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                                        : "feature-tab-inactive bg-transparent border-transparent text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
                                 )}
                             >
                                 {isActive && (
@@ -142,17 +142,23 @@ export function FeaturesSection() {
                                     </div>
                                     <pre className="p-6 font-mono text-sm leading-relaxed text-[#d4d4d4] overflow-x-auto">
                                         <code>
-                                            {/* Simple syntax highlighting visualization */}
                                             {activeFeature.code.split('\n').map((line, i) => {
                                                 let formattedLine = line;
-                                                // Extremely naive highlighting for visual demo purposes
                                                 formattedLine = formattedLine.replace(/(import|from|for|in|if|and|not|continue)/g, '<span class="text-pink-400">$1</span>');
                                                 formattedLine = formattedLine.replace(/(FilteredElementCollector|Transaction|Outline|BoundingBoxIntersectsFilter)/g, '<span class="text-emerald-300">$1</span>');
                                                 formattedLine = formattedLine.replace(/('.*?'|".*?")/g, '<span class="text-yellow-300">$1</span>');
                                                 formattedLine = formattedLine.replace(/(#.*)/g, '<span class="text-green-600/70">$1</span>');
 
                                                 return (
-                                                    <div key={i} dangerouslySetInnerHTML={{ __html: formattedLine || ' ' }} />
+                                                    <div
+                                                        key={i}
+                                                        className="flex hover:bg-white/[0.03] transition-colors duration-150 -mx-6 px-6 group/line"
+                                                    >
+                                                        <span className="text-zinc-600 text-right w-8 mr-4 shrink-0 select-none group-hover/line:text-zinc-400 transition-colors">
+                                                            {i + 1}
+                                                        </span>
+                                                        <span dangerouslySetInnerHTML={{ __html: formattedLine || ' ' }} />
+                                                    </div>
                                                 );
                                             })}
                                         </code>

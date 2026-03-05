@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { SectionWrapper } from "@/components/ui/SectionWrapper";
 import { Terminal, Shield, Lock, Users, Server, Zap } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useEve } from "@/contexts/EveContext";
 
@@ -134,9 +134,13 @@ const securityItems = [
 ];
 
 export function SecuritySection() {
+    const secRef = useRef<HTMLDivElement>(null);
+    const { scrollYProgress } = useScroll({ target: secRef, offset: ["start end", "end start"] });
+    const headY = useTransform(scrollYProgress, [0, 1], [25, -25]);
+
     return (
-        <SectionWrapper id="security" className="py-24 bg-zinc-950/80">
-            <div className="text-center mb-16">
+        <SectionWrapper id="security" className="py-24 bg-zinc-950/50 section-alternate relative overflow-hidden" ref={secRef}>
+            <motion.div className="text-center mb-16" style={{ y: headY }}>
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -154,7 +158,7 @@ export function SecuritySection() {
                 >
                     Built for firms that require absolute control over their intellectual property.
                 </motion.p>
-            </div>
+            </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto perspective-1000">
                 {securityItems.map((item, index) => (

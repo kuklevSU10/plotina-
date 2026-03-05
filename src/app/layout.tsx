@@ -13,13 +13,25 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Plotina | AI-Powered Revit Automation",
-  description: "The infrastructure layer for BIM automation. Turn natural language into executable IronPython instantly.",
+  title: "Plotina | AI Assistant for Autodesk Revit",
+  description: "Describe your Revit task in plain words — Plotina writes the code and runs it for you. AI-powered automation for architects and engineers.",
+  openGraph: {
+    title: "Plotina | AI Assistant for Autodesk Revit",
+    description: "Describe your Revit task in plain words — Plotina writes the code and runs it for you.",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Plotina | AI Assistant for Autodesk Revit",
+    description: "Describe your Revit task in plain words — Plotina writes the code and runs it for you.",
+  },
 };
 
 import { EveProvider } from "@/contexts/EveContext";
 import { CustomCursor } from "@/components/global/CustomCursor";
 import { EveCompanion } from "@/components/global/EveCompanion";
+import { ThemeProvider } from "@/components/global/ThemeProvider";
 
 export default function RootLayout({
   children,
@@ -27,15 +39,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning style={{ backgroundColor: '#09090b' }}>
+      <head>
+        {/* Inline script to set theme before paint — prevents flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('plotina-theme');if(t==='light'){document.documentElement.setAttribute('data-theme','light');document.documentElement.style.backgroundColor='#ffffff'}}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased font-sans bg-zinc-950 text-zinc-100 cursor-none`}
+        className={`${inter.variable} ${jetbrainsMono.variable} antialiased font-sans cursor-none`}
       >
-        <EveProvider>
-          <CustomCursor />
-          <EveCompanion />
-          {children}
-        </EveProvider>
+        <ThemeProvider>
+          <EveProvider>
+            <CustomCursor />
+            <EveCompanion />
+            {children}
+          </EveProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

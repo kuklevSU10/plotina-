@@ -10,7 +10,6 @@ import { useEve } from "@/contexts/EveContext";
 export function PricingSection() {
     const [isAnnual, setIsAnnual] = useState(false);
     const { setInteraction, clearInteraction } = useEve();
-    const proTierRef = useRef<HTMLDivElement>(null);
 
     const tiers = [
         {
@@ -116,24 +115,40 @@ export function PricingSection() {
                 {tiers.map((tier, index) => (
                     <motion.div
                         key={index}
-                        ref={tier.highlighted ? proTierRef : null}
-                        onMouseEnter={() => {
-                            if (tier.highlighted) {
-                                setInteraction({
-                                    type: 'happy',
-                                    thoughtText: "This is my favorite plan!",
-                                    targetRef: proTierRef
-                                });
+                        onMouseEnter={(e) => {
+                            let mood: any = 'hovering';
+                            let text = "";
+                            let scale = 1;
+
+                            if (tier.name === "Free") {
+                                mood = 'hovering';
+                                text = "A solid starting point.";
+                                scale = 1.1;
+                            } else if (tier.name === "Pro") {
+                                mood = 'happy';
+                                text = "This is my favorite plan!";
+                                scale = 1.5;
+                            } else if (tier.name === "Team") {
+                                mood = 'clapping';
+                                text = "WOW! Enterprise scale unlocked!";
+                                scale = 1.9;
                             }
+
+                            setInteraction({
+                                type: mood,
+                                thoughtText: text,
+                                scale: scale,
+                                targetRef: { current: e.currentTarget } as React.RefObject<HTMLElement>
+                            });
                         }}
                         onMouseLeave={() => {
-                            if (tier.highlighted) clearInteraction();
+                            clearInteraction();
                         }}
                         initial={{ opacity: 0, y: 40 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: index * 0.15, duration: 0.5 }}
-                        className={tier.highlighted ? "relative z-10 cursor-none" : ""}
+                        className={tier.highlighted ? "relative z-10 cursor-none" : "cursor-none"}
                     >
                         <GlassCard
                             glow={tier.highlighted}
@@ -148,8 +163,20 @@ export function PricingSection() {
 
                             <div className="mb-8">
                                 <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
-                                <div className="flex items-end gap-1 mb-3">
-                                    <span className="text-4xl font-bold text-white">{tier.price}</span>
+                                <div className="flex items-end gap-1 mb-3 h-12">
+                                    <AnimatePresence mode="wait">
+                                        <motion.span
+                                            key={`${tier.name}-${tier.price}`}
+                                            initial={{ rotateX: -90, opacity: 0 }}
+                                            animate={{ rotateX: 0, opacity: 1 }}
+                                            exit={{ rotateX: 90, opacity: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="text-4xl font-bold text-white inline-block"
+                                            style={{ transformOrigin: 'bottom' }}
+                                        >
+                                            {tier.price}
+                                        </motion.span>
+                                    </AnimatePresence>
                                     {tier.period && <span className="text-zinc-400 mb-1">{tier.period}</span>}
                                 </div>
                                 <p className="text-sm text-zinc-400 min-h-[40px]">{tier.description}</p>

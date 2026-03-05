@@ -9,7 +9,7 @@ export function GlassCard({ className, children, glow = false, ...props }: Glass
     return (
         <div
             className={cn(
-                "relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl transition-all duration-300",
+                "relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl transition-all duration-300 glass-themed",
                 glow && "border-white/20 shadow-[0_0_30px_rgba(34,197,94,0.15)]",
                 className
             )}

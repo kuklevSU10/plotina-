@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { SectionWrapper } from "@/components/ui/SectionWrapper";
 import { Layers, Lock, Cpu, Play } from "lucide-react";
@@ -29,9 +30,16 @@ const steps = [
 ];
 
 export function ArchitectureSection() {
+    const sectionRef = useRef<HTMLDivElement>(null);
+    const { scrollYProgress } = useScroll({
+        target: sectionRef,
+        offset: ["start end", "end start"]
+    });
+    const headingY = useTransform(scrollYProgress, [0, 1], [30, -30]);
+
     return (
-        <SectionWrapper id="architecture" className="py-24 relative">
-            <div className="text-center mb-16">
+        <SectionWrapper id="architecture" className="py-24 relative" ref={sectionRef}>
+            <motion.div className="text-center mb-16" style={{ y: headingY }}>
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -49,13 +57,13 @@ export function ArchitectureSection() {
                 >
                     A seamless, secure pipeline from your natural language prompt to Revit model execution.
                 </motion.p>
-            </div>
+            </motion.div>
 
             <div className="relative max-w-5xl mx-auto py-8">
                 {/* SVG Connecting lines for desktop */}
                 <div className="absolute top-1/2 left-0 right-0 h-4 -translate-y-1/2 hidden md:block pointer-events-none z-0">
                     <svg width="100%" height="100%" preserveAspectRatio="none">
-                        <line x1="12%" y1="50%" x2="88%" y2="50%" stroke="rgba(255,255,255,0.1)" strokeWidth="2" strokeDasharray="6 6" />
+                        <line x1="12%" y1="50%" x2="88%" y2="50%" stroke="rgba(255,255,255,0.1)" strokeWidth="2" strokeDasharray="6 6" className="arch-line-base" />
                         <motion.line
                             x1="12%" y1="50%" x2="88%" y2="50%"
                             stroke="url(#archGradientDesktop)"
@@ -77,7 +85,7 @@ export function ArchitectureSection() {
                 {/* SVG Connecting lines for mobile */}
                 <div className="absolute top-0 bottom-0 left-[24px] w-4 mt-12 mb-12 md:hidden pointer-events-none z-0 -translate-x-1/2">
                     <svg width="100%" height="100%" preserveAspectRatio="none">
-                        <line x1="50%" y1="0%" x2="50%" y2="100%" stroke="rgba(255,255,255,0.1)" strokeWidth="2" strokeDasharray="6 6" />
+                        <line x1="50%" y1="0%" x2="50%" y2="100%" stroke="rgba(255,255,255,0.1)" strokeWidth="2" strokeDasharray="6 6" className="arch-line-base" />
                         <motion.line
                             x1="50%" y1="0%" x2="50%" y2="100%"
                             stroke="url(#archGradientMobile)"

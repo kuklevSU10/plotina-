@@ -1,255 +1,403 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { motion, useSpring, AnimatePresence, useTransform } from "framer-motion";
+import { motion, useSpring, AnimatePresence } from "framer-motion";
 import { useEve } from "@/contexts/EveContext";
 
 export function EveCompanion() {
     const { state, mousePosition, isMobile, isClicked } = useEve();
     const [windowSize, setWindowSize] = useState({ w: 0, h: 0 });
+    const [scrollSpeed, setScrollSpeed] = useState(0);
+    const lastScrollY = useRef(0);
+    const lastScrollTime = useRef(Date.now());
+    const [clickPos, setClickPos] = useState<{ x: number; y: number } | null>(null);
+    const [droplets, setDroplets] = useState<Array<{ id: number; angle: number; dist: number }>>([]);
 
-    // EVE Physics
-    const eveSpringConfig = { damping: 20, stiffness: 80, mass: 1 };
-    const eveX = useSpring(0, eveSpringConfig);
-    const eveY = useSpring(0, eveSpringConfig);
+    // ── EVE position springs (cinematic) ──
+    const eveX = useSpring(0, { damping: 30, stiffness: 50, mass: 1.2 });
+    const eveY = useSpring(0, { damping: 30, stiffness: 50, mass: 1.2 });
 
-    // Cursor Physics
-    const cursorSpringConfig = { damping: 30, stiffness: 300, mass: 0.5 };
-    const cursorX = useSpring(-100, cursorSpringConfig);
-    const cursorY = useSpring(-100, cursorSpringConfig);
+    // ── Cursor springs (smooth but responsive — slightly slower than before) ──
+    const cursorX = useSpring(-100, { damping: 30, stiffness: 350, mass: 0.2 });
+    const cursorY = useSpring(-100, { damping: 30, stiffness: 350, mass: 0.2 });
+
+    // ── Head rotation spring ──
+    const headSpring = useSpring(0, { damping: 20, stiffness: 100, mass: 0.5 });
+    const [headAngle, setHeadAngle] = useState(0);
 
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            setWindowSize({ w: window.innerWidth, h: window.innerHeight });
-            eveX.set(window.innerWidth - 80); // bottom right corner
-            eveY.set(window.innerHeight - 80);
+        const unsubscribe = headSpring.on("change", (v) => setHeadAngle(v));
+        return () => unsubscribe();
+    }, [headSpring]);
 
-            const handleResize = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
-            window.addEventListener('resize', handleResize);
-            return () => window.removeEventListener('resize', handleResize);
+    // ── Liquid drop click effect ──
+    useEffect(() => {
+        if (isClicked) {
+            setClickPos({ x: mousePosition.x, y: mousePosition.y });
+            // Generate random droplets radiating outward
+            const newDroplets = Array.from({ length: 8 }, (_, i) => ({
+                id: Date.now() + i,
+                angle: (i / 8) * 360 + (Math.random() - 0.5) * 30,
+                dist: 20 + Math.random() * 15,
+            }));
+            setDroplets(newDroplets);
+            setTimeout(() => setDroplets([]), 600);
+        } else {
+            setTimeout(() => setClickPos(null), 400);
         }
+    }, [isClicked, mousePosition.x, mousePosition.y]);
+
+    // ── Init window ──
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const update = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
+        update();
+        eveX.set(window.innerWidth - 100);
+        eveY.set(window.innerHeight * 0.7);
+        window.addEventListener("resize", update);
+        return () => window.removeEventListener("resize", update);
     }, [eveX, eveY]);
 
+    // ── Scroll speed ──
     useEffect(() => {
-        if (isMobile) return;
+        const handleScroll = () => {
+            const now = Date.now();
+            const dy = Math.abs(window.scrollY - lastScrollY.current);
+            const dt = Math.max(1, now - lastScrollTime.current);
+            setScrollSpeed(dy / dt);
+            lastScrollY.current = window.scrollY;
+            lastScrollTime.current = now;
+            setTimeout(() => setScrollSpeed(0), 200);
+        };
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
-        // Update cursor
+    // ── Main update: position + head ──
+    useEffect(() => {
+        if (isMobile || windowSize.w === 0) return;
+
         cursorX.set(mousePosition.x);
         cursorY.set(mousePosition.y);
 
-        // Update EVE target
-        let tX = windowSize.w - 100; // Default idle position
-        let tY = windowSize.h - 100;
+        // EVE target — default home position
+        let targetX = windowSize.w - 100;
+        let targetY = windowSize.h * 0.7;
 
-        if (state.type !== 'idle') {
-            if (state.targetRef && state.targetRef.current) {
+        // Helper: check if an element is reasonably within the viewport
+        const isInViewport = (rect: DOMRect) => {
+            return rect.top > -50 && rect.bottom < windowSize.h + 50 && rect.left > -50 && rect.right < windowSize.w + 50;
+        };
+
+        if (state.type === "thinking" || state.type === "explaining" || state.type === "error" || state.type === "success") {
+            if (state.customPosition) {
+                // Custom position: only use if it's within viewport bounds
+                const cpx = state.customPosition.x;
+                const cpy = state.customPosition.y;
+                if (cpy > 0 && cpy < windowSize.h && cpx > 0 && cpx < windowSize.w) {
+                    targetX = cpx;
+                    targetY = cpy;
+                }
+                // else: stay home
+            } else if (state.targetRef?.current) {
                 const rect = state.targetRef.current.getBoundingClientRect();
-                // Position further away, e.g., above and to the right
-                tX = rect.right + 60;
-                tY = rect.top - 60;
-            } else if (state.customPosition) {
-                tX = state.customPosition.x;
-                tY = state.customPosition.y;
-            } else if (state.isGeneric) {
-                // If generic hover but no specific bounds, float near the cursor but keep distance
-                tX = mousePosition.x + 120;
-                tY = mousePosition.y - 120;
+                if (isInViewport(rect)) {
+                    targetX = rect.right + 80;
+                    targetY = rect.top + rect.height / 2;
+                }
+                // else: element scrolled out → stay home
             }
+            // No fallback to mouse position — that caused erratic movement
+        } else if (state.type === "calling") {
+            targetX = Math.min(mousePosition.x + 150, windowSize.w - 60);
+            targetY = mousePosition.y - 60;
         }
 
-        // Keep EVE strictly on screen
-        const padding = 80;
-        tX = Math.max(padding, Math.min(windowSize.w - padding, tX));
-        tY = Math.max(padding, Math.min(windowSize.h - padding, tY));
+        targetX = Math.max(60, Math.min(windowSize.w - 60, targetX));
+        targetY = Math.max(60, Math.min(windowSize.h - 60, targetY));
 
-        eveX.set(tX);
-        eveY.set(tY);
-    }, [mousePosition, state, isMobile, cursorX, cursorY, eveX, eveY, windowSize]);
+        eveX.set(targetX);
+        eveY.set(targetY);
 
-    const getMoodColor = () => {
+        // Head
+        const evePosX = eveX.get();
+        const evePosY = eveY.get();
+        const dx = mousePosition.x - evePosX;
+        const dist = Math.sqrt(dx * dx + Math.pow(mousePosition.y - evePosY, 2));
+
+        if (state.type === "idle" && dist > 400) {
+            headSpring.set(0);
+        } else {
+            const rawAngle = Math.atan2(dx, 200) * (180 / Math.PI);
+            headSpring.set(Math.max(-20, Math.min(20, rawAngle)));
+        }
+    }, [mousePosition, state, isMobile, cursorX, cursorY, eveX, eveY, windowSize, headSpring]);
+
+    // ── Derived ──
+    const moodColor = (() => {
         switch (state.type) {
-            case 'error': return "#ef4444"; // red
-            case 'success': return "#10b981"; // green
-            case 'happy': return "#a855f7"; // purple/cute
-            default: return "#10b981"; // emerald default
+            case "error": return "#ef4444";
+            case "success": return "#10b981";
+            case "happy": case "clapping": return "#a855f7";
+            case "thinking": return "#3b82f6";
+            case "calling": return "#f59e0b";
+            default: return "#38bdf8";
         }
-    };
+    })();
 
-    const moodColor = getMoodColor();
+    const eyeColor = state.type === "error" ? "#ef4444" : "#38bdf8";
+    const isCodeHover = state.type === "thinking";
+    const isFastScroll = scrollSpeed > 2;
+    const eveScale = state.scale || 1;
 
     if (isMobile) return null;
 
     return (
-        <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+        <div className="fixed inset-0 pointer-events-none z-[100]">
 
-            {/* Full-screen SVG for Tether Line */}
-            <svg className="absolute inset-0 w-full h-full">
-                <defs>
-                    <linearGradient id="tether-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor={moodColor} stopOpacity="0.4" />
-                        <stop offset="100%" stopColor={moodColor} stopOpacity="0.05" />
-                    </linearGradient>
-                    <filter id="glow">
-                        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                        <feMerge>
-                            <feMergeNode in="coloredBlur" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
-                </defs>
-                <motion.line
-                    x1={eveX}
-                    y1={eveY}
-                    x2={cursorX}
-                    y2={cursorY}
-                    stroke="url(#tether-gradient)"
-                    strokeWidth={isClicked ? 3 : 1.5}
-                    strokeDasharray={isClicked ? "none" : "4 4"}
-                    filter="url(#glow)"
-                    className="transition-all duration-300"
-                />
-            </svg>
-
-            {/* Custom Tether Target (Mouse Cursor) */}
+            {/* ═══ CURSOR ═══ */}
             <motion.div
-                className="absolute shadow-[0_0_15px_rgba(16,185,129,0.5)] flex items-center justify-center mix-blend-screen"
-                style={{
-                    x: cursorX,
-                    y: cursorY,
-                    translateX: "-50%",
-                    translateY: "-50%",
-                }}
+                className="absolute pointer-events-none"
+                style={{ x: cursorX, y: cursorY, translateX: "-50%", translateY: "-50%" }}
             >
-                <motion.div
-                    animate={{
-                        scale: isClicked ? 0.5 : 1,
-                        backgroundColor: isClicked ? "#fff" : moodColor
-                    }}
-                    transition={{ type: "spring", stiffness: 500, damping: 20 }}
-                    className="w-3 h-3 rounded-full bg-emerald-400"
-                />
-
-                {/* Clicking Ripple */}
-                <AnimatePresence>
-                    {isClicked && (
+                {isCodeHover ? (
+                    <motion.div
+                        className="flex items-center gap-0.5"
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                    >
+                        <span className="text-emerald-400 text-sm font-mono font-bold" style={{ textShadow: "0 0 8px rgba(52,211,153,0.9)" }}>{'>'}</span>
                         <motion.div
-                            initial={{ scale: 1, opacity: 0.8 }}
-                            animate={{ scale: 3, opacity: 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.4 }}
-                            className="absolute inset-0 rounded-full border border-emerald-400"
-                            style={{ borderColor: moodColor }}
+                            animate={{ opacity: [1, 0] }}
+                            transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
+                            className="w-[2.5px] h-5 bg-emerald-400 rounded-sm ml-0.5"
+                            style={{ boxShadow: "0 0 8px rgba(52,211,153,0.8)" }}
                         />
-                    )}
-                </AnimatePresence>
+                    </motion.div>
+                ) : (
+                    <svg width="44" height="44" viewBox="0 0 44 44" className="overflow-visible">
+                        {/* Rotating dashed orbit */}
+                        <motion.circle
+                            cx="22" cy="22" r="16"
+                            fill="none"
+                            stroke="rgba(255,255,255,0.12)"
+                            strokeWidth="0.8"
+                            strokeDasharray="3 5"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                            style={{ transformOrigin: "22px 22px" }}
+                        />
+
+                        {/* Main ring — morphs on click */}
+                        <motion.circle
+                            cx="22" cy="22"
+                            fill="none"
+                            strokeWidth="1.8"
+                            animate={{
+                                r: isClicked ? 6 : 12,
+                                stroke: isClicked ? moodColor : "rgba(255,255,255,0.7)",
+                                strokeWidth: isClicked ? 2.5 : 1.8,
+                            }}
+                            transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                        />
+
+                        {/* Crosshair ticks */}
+                        <g stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round">
+                            <line x1="22" y1="3" x2="22" y2="9" />
+                            <line x1="22" y1="35" x2="22" y2="41" />
+                            <line x1="3" y1="22" x2="9" y2="22" />
+                            <line x1="35" y1="22" x2="41" y2="22" />
+                        </g>
+
+                        {/* Center dot */}
+                        <motion.circle
+                            cx="22" cy="22"
+                            fill={moodColor}
+                            animate={{
+                                r: isClicked ? 4.5 : 2.5,
+                                opacity: [0.85, 1, 0.85],
+                            }}
+                            transition={{
+                                r: { type: "spring", stiffness: 500, damping: 18 },
+                                opacity: { duration: 2, repeat: Infinity },
+                            }}
+                        />
+                        {/* Center glow */}
+                        <circle cx="22" cy="22" r="4" fill={moodColor} opacity="0.25" style={{ filter: "blur(5px)" }} />
+
+                        {/* Liquid drop splash on click */}
+                        <AnimatePresence>
+                            {isClicked && (
+                                <>
+                                    {/* Main expanding ring */}
+                                    <motion.circle
+                                        cx="22" cy="22"
+                                        fill="none"
+                                        stroke={moodColor}
+                                        strokeWidth="2"
+                                        initial={{ r: 8, opacity: 0.8 }}
+                                        animate={{ r: 30, opacity: 0, strokeWidth: 0.5 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.5, ease: "easeOut" }}
+                                    />
+                                    {/* Second softer ring */}
+                                    <motion.circle
+                                        cx="22" cy="22"
+                                        fill="none"
+                                        stroke={moodColor}
+                                        strokeWidth="1"
+                                        initial={{ r: 10, opacity: 0.5 }}
+                                        animate={{ r: 38, opacity: 0 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.6, ease: "easeOut", delay: 0.05 }}
+                                    />
+                                    {/* Radiating droplets */}
+                                    {droplets.map((d) => {
+                                        const rad = (d.angle * Math.PI) / 180;
+                                        const tx = Math.cos(rad) * d.dist;
+                                        const ty = Math.sin(rad) * d.dist;
+                                        return (
+                                            <motion.circle
+                                                key={d.id}
+                                                cx="22" cy="22"
+                                                r="1.5"
+                                                fill={moodColor}
+                                                initial={{ opacity: 0.9, x: 0, y: 0, scale: 1 }}
+                                                animate={{ opacity: 0, x: tx, y: ty, scale: 0.3 }}
+                                                transition={{ duration: 0.45, ease: "easeOut" }}
+                                            />
+                                        );
+                                    })}
+                                </>
+                            )}
+                        </AnimatePresence>
+                    </svg>
+                )}
             </motion.div>
 
-            {/* EVE Companion Body */}
+            {/* ═══ EVE ═══ */}
             <motion.div
-                className="absolute flex flex-col items-center"
-                style={{
-                    x: eveX,
-                    y: eveY,
-                    translateX: "-50%",
-                    translateY: "-50%",
-                }}
+                className="absolute"
+                style={{ x: eveX, y: eveY, translateX: "-50%", translateY: "-50%" }}
+                animate={{ scale: eveScale }}
+                transition={{ type: "spring", stiffness: 200, damping: 15 }}
             >
-                {/* EVE Floating Animation */}
                 <motion.div
-                    animate={{ y: [-4, 4, -4] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className="relative flex flex-col items-center justify-center"
+                    animate={
+                        state.type === "clapping"
+                            ? { y: [0, -12, 0] }
+                            : { y: [-3, 3, -3] }
+                    }
+                    transition={
+                        state.type === "clapping"
+                            ? { duration: 0.35, repeat: Infinity }
+                            : { duration: 3.5, repeat: Infinity, ease: "easeInOut" }
+                    }
+                    className="relative flex flex-col items-center"
                 >
-                    {/* Thought Bubble - Positioned to top-left to avoid covering target */}
+                    {/* Thought Bubble */}
                     <AnimatePresence>
                         {state.thoughtText && (
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.8, x: -20, y: 10 }}
-                                animate={{ opacity: 1, scale: 1, x: -40, y: -40 }}
-                                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
-                                className="absolute bottom-full right-full mb-2 mr-2 min-w-[180px] max-w-[240px] bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-medium p-3 rounded-2xl rounded-br-sm shadow-[0_4px_30px_rgba(0,0,0,0.3)] pointer-events-none"
+                                initial={{ opacity: 0, scale: 0.7, y: 8 }}
+                                animate={{ opacity: 1, scale: 1, y: -8 }}
+                                exit={{ opacity: 0, scale: 0.7, y: 8, transition: { duration: 0.15 } }}
+                                className={`absolute bottom-full mb-3 right-0 bg-white/10 backdrop-blur-lg border border-white/20 text-white text-[11px] font-medium p-2.5 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.3)] whitespace-pre-wrap leading-relaxed ${state.type === 'explaining' || state.type === 'success'
+                                    ? 'min-w-[200px] max-w-[320px] max-h-[160px] overflow-y-auto text-left'
+                                    : 'min-w-[140px] max-w-[200px] text-center'
+                                    }`}
                             >
                                 {state.thoughtText}
+                                <div className="absolute -bottom-1 right-6 w-2 h-2 bg-white/10 border-b border-r border-white/20 rotate-45" />
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    {/* Cute EVE SVG */}
-                    <svg width="48" height="60" viewBox="0 0 48 60" className="drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]">
-                        {/* Hover Thruster (Bottom glow) */}
-                        <motion.ellipse
-                            cx="24" cy="56" rx="10" ry="3"
-                            fill={moodColor}
-                            animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.8, 1.2, 0.8] }}
+                    {/* EVE SVG */}
+                    <svg width="70" height="100" viewBox="0 0 70 100" className="drop-shadow-[0_5px_15px_rgba(0,0,0,0.3)] mascot-shadow-themed">
+                        <defs>
+                            <linearGradient id="eBody" x1="20%" y1="0%" x2="80%" y2="100%">
+                                <stop offset="0%" stopColor="#ffffff" />
+                                <stop offset="40%" stopColor="#f1f5f9" />
+                                <stop offset="100%" stopColor="#c7cdd5" />
+                            </linearGradient>
+                            <linearGradient id="eHead" x1="30%" y1="0%" x2="70%" y2="100%">
+                                <stop offset="0%" stopColor="#ffffff" />
+                                <stop offset="60%" stopColor="#e2e8f0" />
+                                <stop offset="100%" stopColor="#94a3b8" />
+                            </linearGradient>
+                            <filter id="eGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="2.5" result="b" />
+                                <feComposite in="SourceGraphic" in2="b" operator="over" />
+                            </filter>
+                        </defs>
+
+                        {/* Thruster glow */}
+                        <motion.ellipse cx="35" cy="96" rx="12" ry="4" fill={moodColor}
+                            animate={{ opacity: [0.15, 0.4, 0.15] }}
                             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                            style={{ filter: "blur(4px)" }}
+                            style={{ filter: "blur(6px)" }}
                         />
 
-                        {/* Floating Head - Separated from body, cuter proportions */}
-                        <motion.g
-                            animate={
-                                state.type === 'happy' ? { rotate: [0, -15, 15, 0], y: [-2, 2, -2] } :
-                                    state.type === 'explaining' ? { rotate: [0, 5, 0, -5, 0] } :
-                                        { y: [-1, 1, -1] }
-                            }
-                            transition={{ duration: state.type === 'happy' ? 0.6 : 3, repeat: Infinity, ease: "easeInOut" }}
-                        >
-                            {/* Head shell */}
-                            <ellipse cx="24" cy="14" rx="16" ry="12" fill="#ffffff" />
-                            {/* Screen glass */}
-                            <ellipse cx="24" cy="14" rx="12" ry="8" fill="#0f172a" />
+                        {/* HEAD */}
+                        <g style={{ transform: `rotate(${headAngle}deg)`, transformOrigin: "35px 26px", transition: "transform 0.1s ease-out" }}>
+                            <path d="M 12 26 C 12 6, 58 6, 58 26 C 58 35, 48 39, 35 39 C 22 39, 12 35, 12 26 Z" fill="url(#eHead)" />
+                            <path d="M 16 26 C 16 15, 54 15, 54 26 C 54 33, 44 36, 35 36 C 26 36, 16 33, 16 26 Z" fill="#0a0f1a" />
+                            <path d="M 20 22 C 20 18, 50 18, 50 22 C 50 22, 35 25, 20 22 Z" fill="rgba(255,255,255,0.05)" />
 
                             {/* Eyes */}
-                            <motion.ellipse
-                                cx="19" cy="14" rx="3.5" ry="3.5"
-                                fill={moodColor}
-                                animate={{
-                                    scaleY: state.type === 'idle' ? [1, 0.1, 1] : 1, // blink
-                                    ry: state.type === 'happy' ? [3.5, 1, 3.5] : 3.5 // squint
-                                }}
-                                transition={{ duration: state.type === 'idle' ? 4 : 0.4, repeat: state.type === 'idle' ? Infinity : 0, repeatDelay: 2 }}
-                                style={{ filter: `drop-shadow(0 0 3px ${moodColor})` }}
-                            />
-                            <motion.ellipse
-                                cx="29" cy="14" rx="3.5" ry="3.5"
-                                fill={moodColor}
-                                animate={{
-                                    scaleY: state.type === 'idle' ? [1, 0.1, 1] : 1,
-                                    ry: state.type === 'happy' ? [3.5, 1, 3.5] : 3.5
-                                }}
-                                transition={{ duration: state.type === 'idle' ? 4 : 0.4, repeat: state.type === 'idle' ? Infinity : 0, repeatDelay: 2 }}
-                                style={{ filter: `drop-shadow(0 0 3px ${moodColor})` }}
-                            />
+                            <g filter="url(#eGlow)">
+                                <motion.ellipse cx="28" cy="25" rx="5.5" fill={eyeColor}
+                                    animate={{ ry: isFastScroll ? 5.5 : state.type === "thinking" ? 2 : (state.type === "happy" || state.type === "clapping") ? [3.5, 1.5, 3.5] : [3.5, 0.3, 3.5] }}
+                                    transition={{ duration: isFastScroll ? 0.15 : state.type === "idle" ? 0.25 : 0.5, repeat: state.type === "idle" || state.type === "happy" || state.type === "clapping" ? Infinity : 0, repeatDelay: state.type === "idle" ? 3.5 : 0.8 }}
+                                />
+                            </g>
+                            <g filter="url(#eGlow)">
+                                <motion.ellipse cx="42" cy="25" rx="5.5" fill={eyeColor}
+                                    animate={{ ry: isFastScroll ? 5.5 : state.type === "thinking" ? 2 : (state.type === "happy" || state.type === "clapping") ? [3.5, 1.5, 3.5] : [3.5, 0.3, 3.5] }}
+                                    transition={{ duration: isFastScroll ? 0.15 : state.type === "idle" ? 0.25 : 0.5, repeat: state.type === "idle" || state.type === "happy" || state.type === "clapping" ? Infinity : 0, repeatDelay: state.type === "idle" ? 3.5 : 0.8 }}
+                                />
+                            </g>
+
+                            {state.type === "thinking" && (
+                                <g>
+                                    <motion.circle cx="31" cy="18" r="1.2" fill="#60a5fa" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.8, repeat: Infinity }} />
+                                    <motion.circle cx="35" cy="18" r="1.2" fill="#60a5fa" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0.25 }} />
+                                    <motion.circle cx="39" cy="18" r="1.2" fill="#60a5fa" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0.5 }} />
+                                </g>
+                            )}
+                            {state.type === "calling" && (
+                                <g>
+                                    <motion.path d="M 10 22 Q 6 26 10 30" stroke="#fbbf24" strokeWidth="1.5" fill="none" animate={{ opacity: [0, 1, 0] }} transition={{ duration: 0.7, repeat: Infinity }} />
+                                    <motion.path d="M 60 22 Q 64 26 60 30" stroke="#fbbf24" strokeWidth="1.5" fill="none" animate={{ opacity: [0, 1, 0] }} transition={{ duration: 0.7, repeat: Infinity }} />
+                                </g>
+                            )}
+                        </g>
+
+                        <ellipse cx="35" cy="41" rx="14" ry="2.5" fill="rgba(0,0,0,0.06)" />
+
+                        {/* BODY */}
+                        <path d="M 18 44 C 16 53, 16 70, 22 82 C 26 88, 31 91, 35 91 C 39 91, 44 88, 48 82 C 54 70, 54 53, 52 44 C 47 45, 41 46, 35 46 C 29 46, 23 45, 18 44 Z" fill="url(#eBody)" />
+                        <ellipse cx="35" cy="44" rx="17" ry="2.5" fill="#e8ecf0" />
+
+                        {/* ARMS */}
+                        <motion.g animate={{ y: state.type === "clapping" ? [0, -6, 0] : [-0.5, 0.5, -0.5] }}
+                            transition={{ duration: state.type === "clapping" ? 0.2 : 3, repeat: Infinity, ease: "easeInOut" }}>
+                            <motion.path d="M 14 48 C 10 56, 9 70, 13 78" fill="none" stroke="url(#eBody)" strokeWidth="5.5" strokeLinecap="round"
+                                animate={{ rotate: state.type === "clapping" ? [0, 18, 0] : [0, 2, 0] }}
+                                transition={{ duration: state.type === "clapping" ? 0.2 : 3, repeat: Infinity }}
+                                style={{ transformOrigin: "14px 48px" }} />
+                            <motion.path d="M 56 48 C 60 56, 61 70, 57 78" fill="none" stroke="url(#eBody)" strokeWidth="5.5" strokeLinecap="round"
+                                animate={{ rotate: state.type === "clapping" ? [0, -18, 0] : [0, -2, 0] }}
+                                transition={{ duration: state.type === "clapping" ? 0.2 : 3, repeat: Infinity }}
+                                style={{ transformOrigin: "56px 48px" }} />
                         </motion.g>
 
-                        {/* Main Body - teardrop/egg shape */}
-                        <path
-                            d="M 12 34 C 12 48, 18 54, 24 54 C 30 54, 36 48, 36 34 C 36 28, 30 26, 24 26 C 18 26, 12 28, 12 34 Z"
-                            fill="#f8fafc"
-                        />
-
-                        {/* Body glowing core */}
-                        <circle cx="24" cy="38" r="4" fill={moodColor} opacity="0.8" style={{ filter: "blur(2px)" }} />
-
-                        {/* Scanning Beam extending down when explaining */}
-                        <AnimatePresence>
-                            {(state.type === 'explaining' || state.type === 'error') && (
-                                <motion.path
-                                    initial={{ opacity: 0, scaleY: 0 }}
-                                    animate={{ opacity: 0.3, scaleY: 1 }}
-                                    exit={{ opacity: 0, scaleY: 0 }}
-                                    style={{ transformOrigin: 'top' }}
-                                    d="M 24 38 L 8 80 L 40 80 Z"
-                                    fill="url(#scanGradient-cute)"
-                                />
-                            )}
-                        </AnimatePresence>
-                        <defs>
-                            <linearGradient id="scanGradient-cute" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor={moodColor} stopOpacity="0.8" />
-                                <stop offset="100%" stopColor={moodColor} stopOpacity="0" />
-                            </linearGradient>
-                        </defs>
+                        {/* Core */}
+                        <motion.ellipse cx="35" cy="64" rx="3" ry="3.5" fill={moodColor}
+                            animate={{ opacity: [0.3, 0.7, 0.3] }} transition={{ duration: 2, repeat: Infinity }}
+                            style={{ filter: "blur(2px)" }} />
+                        <ellipse cx="35" cy="64" rx="1.5" ry="2" fill="#fff" />
                     </svg>
                 </motion.div>
             </motion.div>

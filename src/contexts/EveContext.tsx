@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
-type InteractionType = 'idle' | 'tracking' | 'hovering' | 'explaining' | 'error' | 'success' | 'happy' | 'clicking';
+type InteractionType = 'idle' | 'tracking' | 'hovering' | 'explaining' | 'error' | 'success' | 'happy' | 'clicking' | 'thinking' | 'calling' | 'clapping';
 
 export interface EveInteraction {
     type: InteractionType;
@@ -11,6 +11,7 @@ export interface EveInteraction {
     thoughtText?: string;
     isVisible?: boolean;
     isGeneric?: boolean; // flag to allow explicit interactions to override generic ones
+    scale?: number; // allow dynamic sizing of EVE
 }
 
 interface EveContextType {
@@ -54,44 +55,50 @@ export function EveProvider({ children }: { children: ReactNode }) {
             if (!force && !prev.isGeneric && prev.type !== 'idle') {
                 return prev; // don't clear explicit interactions unless forced or explicitly clear
             }
-            return { type: 'idle', isVisible: true, isGeneric: true };
+            return { type: 'idle', isVisible: true, isGeneric: true, scale: 1 };
         });
     }, []);
 
-    // Global listeners for Smart Hover and Clicks
+    // Global listeners for Smart Hover, Mouse Position, and Clicks
     React.useEffect(() => {
         if (isMobile) return;
 
+        // CRITICAL: Track mouse position for cursor and EVE
+        const handleMouseMove = (e: MouseEvent) => {
+            setMousePosition({ x: e.clientX, y: e.clientY });
+        };
+
         const handleMouseOver = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
-            const interactiveEl = target.closest('button, a, [role="button"], pre') as HTMLElement;
+            const interactiveEl = target.closest('button, a, [role="button"], pre, code') as HTMLElement;
 
             if (interactiveEl) {
                 if (interactiveEl.hasAttribute('data-eve-ignore')) return;
 
-                let text = "";
-                let mood: InteractionType = "hovering";
-
-                if (interactiveEl.tagName === 'PRE') {
-                    text = "Analyzing this architecture code...";
-                    mood = "explaining";
-                } else if (interactiveEl.textContent) {
-                    const snippet = interactiveEl.textContent.trim().slice(0, 20);
-                    text = `Looking at "${snippet}..."`;
-                    if (snippet.toLowerCase().includes('pro')) {
-                        mood = 'happy';
-                        text = "Oh, the Pro tier! Excellent choice.";
-                    }
+                // Code blocks — EVE actively approaches
+                if (interactiveEl.tagName === 'PRE' || (interactiveEl.tagName === 'CODE' && interactiveEl.closest('pre'))) {
+                    const codeEl = (interactiveEl.closest('pre') || interactiveEl) as HTMLElement;
+                    setInteraction({
+                        type: 'thinking',
+                        thoughtText: "Hmm, analyzing this code...",
+                        isGeneric: true,
+                        targetRef: { current: codeEl } as React.RefObject<HTMLElement>,
+                    });
+                    // Footer / Contact — calling
+                } else if (interactiveEl.closest('footer') || interactiveEl.textContent?.toLowerCase().includes('contact')) {
+                    setInteraction({
+                        type: 'calling',
+                        thoughtText: "Initiating connection...",
+                        isGeneric: true,
+                    });
+                    // Normal buttons — EVE stays calm, just head-tracks
+                } else {
+                    setInteraction({
+                        type: 'hovering',
+                        isGeneric: true,
+                        // No thoughtText — EVE simply tracks with her head
+                    });
                 }
-
-                // We mutate state using generic flag
-                setInteraction({
-                    type: mood,
-                    thoughtText: text,
-                    isGeneric: true,
-                    // We can't easily pass a real ref, so we let EVE just float near cursor for generic hovers
-                    // By not providing targetRef, she follows cursor or uses custom tracking in EveCompanion
-                });
             } else {
                 clearInteraction();
             }
@@ -100,11 +107,13 @@ export function EveProvider({ children }: { children: ReactNode }) {
         const handleMouseDown = () => setIsClicked(true);
         const handleMouseUp = () => setIsClicked(false);
 
+        window.addEventListener('mousemove', handleMouseMove, { passive: true });
         document.body.addEventListener('mouseover', handleMouseOver);
         window.addEventListener('mousedown', handleMouseDown);
         window.addEventListener('mouseup', handleMouseUp);
 
         return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
             document.body.removeEventListener('mouseover', handleMouseOver);
             window.removeEventListener('mousedown', handleMouseDown);
             window.removeEventListener('mouseup', handleMouseUp);

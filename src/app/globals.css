@@ -7,11 +7,16 @@
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+/* ═══════════════════════════════════════
+   DARK THEME (default — untouched)
+   ═══════════════════════════════════════ */
 :root {
   --background: #09090b;
-  /* zinc-950 */
   --foreground: #f4f4f5;
-  /* zinc-100 */
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 @layer base {
@@ -42,4 +47,360 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
+}
+
+/* ===== Background Noise Texture ===== */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: overlay;
+}
+
+/* ===== Section Divider utility ===== */
+@utility section-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(161, 161, 170, 0.15), transparent);
+}
+
+/* ===== cursor-none accessibility fallback ===== */
+@media (pointer: coarse) {
+  body {
+    cursor: auto !important;
+  }
+
+  * {
+    cursor: auto !important;
+  }
+}
+
+/* ===== Premium Code Interaction Styles ===== */
+pre {
+  position: relative;
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+pre:hover {
+  box-shadow: 0 0 30px -5px rgba(56, 189, 248, 0.15), 0 0 60px -10px rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.2);
+}
+
+pre::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 3px,
+      rgba(56, 189, 248, 0.03) 3px,
+      rgba(56, 189, 248, 0.03) 4px);
+  transition: opacity 0.4s ease;
+  border-radius: inherit;
+}
+
+pre:hover::after {
+  opacity: 1;
+}
+
+pre ::selection,
+code ::selection {
+  background: rgba(52, 211, 153, 0.25);
+  color: #ecfdf5;
+}
+
+pre ::-moz-selection,
+code ::-moz-selection {
+  background: rgba(52, 211, 153, 0.25);
+  color: #ecfdf5;
+}
+
+:not(pre)>code {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.875em;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+:not(pre)>code:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.15);
+}
+
+/* ═══════════════════════════════════════════════
+   LIGHT THEME — Pure additive overrides
+   Dark classes stay untouched, these just flip
+   visuals when data-theme="light" is set.
+   ═══════════════════════════════════════════════ */
+
+/* Smooth transition for theme switch */
+html,
+body {
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+html[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #18181b;
+}
+
+/* Body & page background */
+html[data-theme="light"] body {
+  background-color: #ffffff;
+  color: #18181b;
+}
+
+/* Noise texture — much subtler in light */
+html[data-theme="light"] body::before {
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+}
+
+/* ── Nav ── */
+html[data-theme="light"] .nav-themed {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="light"] .nav-brand {
+  color: #18181b !important;
+}
+
+html[data-theme="light"] .nav-link {
+  color: #52525b !important;
+}
+
+html[data-theme="light"] .nav-link:hover {
+  color: #059669 !important;
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="light"] .nav-signin {
+  color: #18181b !important;
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+html[data-theme="light"] .nav-signin:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ── GlassCard (Enhanced depth) ── */
+html[data-theme="light"] .glass-themed {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ── Global text color overrides (INCREASED CONTRAST) ── */
+html[data-theme="light"] .text-white {
+  color: #18181b !important;
+  /* zinc-900 */
+}
+
+html[data-theme="light"] .text-zinc-100 {
+  color: #18181b !important;
+  /* zinc-900 */
+}
+
+html[data-theme="light"] .text-zinc-200 {
+  color: #27272a !important;
+  /* zinc-800 */
+}
+
+html[data-theme="light"] .text-zinc-300 {
+  color: #3f3f46 !important;
+  /* zinc-700 - much darker */
+}
+
+html[data-theme="light"] .text-zinc-400 {
+  color: #52525b !important;
+  /* zinc-600 - much darker */
+}
+
+html[data-theme="light"] .text-zinc-500 {
+  color: #71717a !important;
+  /* zinc-500 */
+}
+
+/* ── Background overrides ── */
+html[data-theme="light"] .bg-zinc-950 {
+  background-color: #ffffff !important;
+}
+
+html[data-theme="light"] .bg-zinc-900 {
+  background-color: #fafafa !important;
+}
+
+html[data-theme="light"] .bg-zinc-800 {
+  background-color: #f4f4f5 !important;
+}
+
+html[data-theme="light"] .bg-zinc-700 {
+  background-color: #e4e4e7 !important;
+}
+
+/* ── Border overrides ── */
+html[data-theme="light"] .border-white\/10,
+html[data-theme="light"] .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+html[data-theme="light"] .border-zinc-800 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+html[data-theme="light"] .border-zinc-700 {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ── bg-white/X glass surfaces ── */
+html[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+html[data-theme="light"] .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ── Section wrapper backgrounds ── */
+html[data-theme="light"] .bg-zinc-950\/50,
+html[data-theme="light"] .section-alternate {
+  background-color: #fafafa !important;
+  /* zinc-50 for distinct sections */
+}
+
+/* ── Section divider ── */
+html[data-theme="light"] .section-divider {
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.1), transparent) !important;
+}
+
+/* ── Shadows in light ── */
+html[data-theme="light"] .shadow-2xl {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ── Selection ── */
+html[data-theme="light"] ::selection,
+html[data-theme="light"] *::selection {
+  background: rgba(16, 185, 129, 0.2);
+  color: #064e3b;
+}
+
+/* ── Code blocks STAY DARK in light theme ── */
+html[data-theme="light"] pre,
+html[data-theme="light"] .code-block-dark {
+  background-color: #1e1e1e !important;
+  color: #d4d4d8 !important;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3) !important;
+  /* Ground the terminal */
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+html[data-theme="light"] pre .text-white,
+html[data-theme="light"] .code-block-dark .text-white {
+  color: #d4d4d8 !important;
+}
+
+html[data-theme="light"] pre .text-zinc-300,
+html[data-theme="light"] .code-block-dark .text-zinc-300 {
+  color: #d4d4d8 !important;
+}
+
+html[data-theme="light"] pre .text-zinc-400,
+html[data-theme="light"] .code-block-dark .text-zinc-400 {
+  color: #a1a1aa !important;
+}
+
+html[data-theme="light"] pre .text-zinc-500,
+html[data-theme="light"] .code-block-dark .text-zinc-500 {
+  color: #71717a !important;
+}
+
+/* Terminal header stays dark */
+html[data-theme="light"] .terminal-header {
+  background-color: #2d2d2d !important;
+  color: #a1a1aa !important;
+  border-bottom-color: #1e1e1e !important;
+}
+
+/* ── Footer ── */
+html[data-theme="light"] footer,
+html[data-theme="light"] .footer-themed {
+  background-color: #fafafa !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+html[data-theme="light"] footer .text-zinc-500 {
+  color: #52525b !important;
+  /* Darker for links */
+}
+
+html[data-theme="light"] .footer-icon {
+  color: #52525b !important;
+}
+
+/* ── CTA Section gradient (Stronger for light mode) ── */
+html[data-theme="light"] .cta-section-bg {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), #ffffff) !important;
+}
+
+/* ── Pricing cards ── */
+html[data-theme="light"] .pricing-card {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ── Emerald & Color Accents remain vibrant ── */
+html[data-theme="light"] .text-emerald-400 {
+  color: #059669 !important;
+}
+
+html[data-theme="light"] .text-emerald-300 {
+  color: #10b981 !important;
+}
+
+html[data-theme="light"] .text-purple-400 {
+  color: #7e22ce !important;
+  /* Darker purple for legibility */
+}
+
+/* ── Architecture SVG Lines ── */
+html[data-theme="light"] .arch-line-base {
+  stroke: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ── Mascot Glow Drop Shadow Fix ── */
+html[data-theme="light"] .mascot-shadow-themed {
+  filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.15)) !important;
+}
+
+/* ── Feature Tab Active ── */
+html[data-theme="light"] .feature-tab-active {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05) !important;
+  color: #18181b !important;
+}
+
+html[data-theme="light"] .feature-tab-active .text-zinc-400 {
+  color: #059669 !important;
+  /* Emerald icon in active state */
+}
+
+/* ── Glows ── */
+html[data-theme="light"] .bg-emerald-500\/10,
+html[data-theme="light"] .bg-emerald-500\/5 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
 }
