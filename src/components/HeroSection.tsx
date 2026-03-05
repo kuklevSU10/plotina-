@@ -382,7 +382,7 @@ unmarked_count = <span class="text-orange-300">0</span>
                                     {isStreaming ? "Explaining..." : "Explain"}
                                 </button>
                             </div>
-                            <div className="p-6 font-mono text-sm text-zinc-300 h-[280px] overflow-hidden relative code-block-dark">
+                            <div className="p-6 font-mono text-sm text-zinc-300 h-[280px] overflow-x-auto overflow-y-hidden relative code-block-dark">
                                 <motion.pre
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}

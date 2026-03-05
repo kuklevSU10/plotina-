@@ -49,6 +49,28 @@ html {
   color: transparent;
 }
 
+/* ===== Code block scrollbar (mobile & desktop) ===== */
+pre::-webkit-scrollbar,
+.code-block-dark::-webkit-scrollbar {
+  height: 4px;
+}
+
+pre::-webkit-scrollbar-track,
+.code-block-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+pre::-webkit-scrollbar-thumb,
+.code-block-dark::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover,
+.code-block-dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* ===== Background Noise Texture ===== */
 body::before {
   content: '';
